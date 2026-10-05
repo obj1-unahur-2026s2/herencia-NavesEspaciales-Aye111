@@ -1,9 +1,121 @@
-import example.pepita
+import example.*
 
-describe "group of tests for pepita" {
+describe "Tests de Naves Espaciales" {
 
-  test "pepita has initial energy" {
-    assert.equals(100, pepita.energy())
+  //Instancias de Naves
+  const naveBaliza = new Baliza()
+  const navePasajeros = new Pasajeros(pasajeros = 10)
+  const naveCombate = new Combate()
+  const naveHospital = new Hospital(pasajeros = 5)
+  const naveSigilosa = new Sigilosa()
+
+  // Preparar Viaje
+  test "Nave Baliza prepara viaje correctamente" {
+    naveBaliza.prepararViaje()
+    
+    assert.equals(30000, naveBaliza.combustible())
+    assert.equals(5000, naveBaliza.velocidad())
+    assert.equals("verde", naveBaliza.color())
+    assert.equals(0, naveBaliza.direccion()) // Paralela al Sol
   }
 
+  test "Nave de Pasajeros prepara viaje cargando raciones" {
+    navePasajeros.prepararViaje()
+    
+    assert.equals(40, navePasajeros.comida())   // 10 pasajeros * 4
+    assert.equals(60, navePasajeros.bebida())   // 10 pasajeros * 6
+    assert.equals(1, navePasajeros.direccion()) // Se acercó 1 al Sol
+  }
+
+  test "Nave de Combate prepara viaje acumulando aceleraciones" {
+    naveCombate.prepararViaje()
+    
+    // Base (5000) + Combate (15000) = 20000
+    assert.equals(20000, naveCombate.velocidad())
+    assert.that(naveCombate.estaVisible())
+    assert.notThat(naveCombate.misilesDesplegados())
+    assert.that(naveCombate.emitioMensaje("Saliendo en misión"))
+  }
+  // Estado Tranquila
+  test "Nave de Combate no está tranquila con misiles desplegados" {
+    naveCombate.cargarCombustible(5000)
+    naveCombate.acelerar(10000)
+    naveCombate.desplegarMisiles()
+
+    assert.notThat(naveCombate.estaTranquila())
+  }
+
+  test "Nave Sigilosa requiere estar visible para estar tranquila" {
+    naveSigilosa.cargarCombustible(5000)
+    naveSigilosa.acelerar(10000)
+    naveSigilosa.replegarMisiles()
+    naveSigilosa.ponerseInvisible()
+
+    assert.notThat(naveSigilosa.estaTranquila()) // Falla por estar invisible
+  }
+
+  test "Nave Hospital no está tranquila con quirófanos preparados" {
+    naveHospital.cargarCombustible(5000)
+    naveHospital.acelerar(10000)
+    naveHospital.prepararQuirofanos()
+
+    assert.notThat(naveHospital.estaTranquila())
+  }
+
+  // Reacción ante Amenazas
+  test "Nave Baliza ante amenaza va al Sol y pasa baliza a rojo" {
+    naveBaliza.recibirAmenaza()
+
+    assert.equals(10, naveBaliza.direccion()) // Fue hacia el Sol
+    assert.equals("rojo", naveBaliza.color())
+  }
+
+  test "Nave de Pasajeros duplica velocidad sin superar el máximo y reparte raciones" {
+    navePasajeros.cargarComida(20)
+    navePasajeros.cargarBebida(30)
+    navePasajeros.acelerar(60000) // Velocidad inicial 60.000
+
+    navePasajeros.recibirAmenaza()
+
+    // 60.000 * 2 = 120.000, pero debe limitarse a 100.000
+    assert.equals(100000, navePasajeros.velocidad())
+    assert.equals(10, navePasajeros.comida()) // Perdió 10 (1 * 10 pasajeros)
+    assert.equals(10, navePasajeros.bebida()) // Perdió 20 (2 * 10 pasajeros)
+  }
+
+  test "Nave Hospital prepara quirófanos al recibir amenaza" {
+    naveHospital.recibirAmenaza()
+
+    assert.that(naveHospital.quirofanosPreparados())
+  }
+
+  test "Nave Sigilosa despliega misiles e invisibilidad al recibir amenaza" {
+    naveSigilosa.recibirAmenaza()
+
+    assert.that(naveSigilosa.misilesDesplegados())
+    assert.notThat(naveSigilosa.estaVisible())
+    assert.that(naveSigilosa.emitioMensaje("Amenaza recibida"))
+  }
+
+  // Relajo
+  test "Nave Baliza está de relajo si está tranquila y nunca cambió de color" {
+    naveBaliza.cargarCombustible(5000)
+    naveBaliza.acelerar(2000) // Tranquila: combustible >= 4000, vel <= 12000, color != "rojo"
+
+    assert.that(naveBaliza.estaDeRelajo())
+
+    naveBaliza.cambiarColorDeBaliza("verde") // Registra cambio de color
+
+    assert.notThat(naveBaliza.estaDeRelajo()) // Deja de estar de relajo por poca actividad
+  }
+
+  test "Nave de Pasajeros pierde el relajo al servir 50 o más raciones de comida" {
+    navePasajeros.cargarCombustible(5000)
+    navePasajeros.cargarComida(100)
+
+    // Servimos 50 raciones descargando comida
+    navePasajeros.descargarComida(50)
+
+    assert.notThat(navePasajeros.estaDeRelajo())
+  }
 }
